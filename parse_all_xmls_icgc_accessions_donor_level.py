@@ -4,6 +4,7 @@
 # parse_xml_seqstrat.py
 # Parses EGA XML files to generate an EGA-DCC Audit
 
+
 import os
 import string
 import xmltodict
@@ -39,8 +40,7 @@ ega_file_sizes = {}
 rootDir = ''
 datasetFileInfo = {}
 test = open("Testing.tsv", "w")
-#donor_summary = open("Donor_Summary_8Aug2018.tsv", "a")
-donor_summary = open("Donor_Summary_22Nov2018.tsv", "a")
+donor_summary = open("Donor_Summary_3Dec2018.tsv", "a")
 
 try:
    opts, args = getopt.getopt(sys.argv[1:], "hm:o:r:", ["mapping_file","output_dir", "root_dir"])
@@ -72,7 +72,7 @@ specimen_types = {}
 specimen_type_list = { '101': 'Normal - solid tissue', '102': 'Normal - blood derived', '103': 'Normal - bone marrow', '104': 'Normal - tissue adjacent to primary', '105': 'Normal - buccal cell', '106': 'Normal - EBV immortalized', '107': 'Normal - lymph node', '108': 'Normal - other', '109': 'Primary tumour - solid tissue', '110': 'Primary tumour - blood derived (peripheral blood)', '111': 'Primary tumour - blood derived (bone marrow)', '112': ' Primary tumour - additional new primary', '113': 'Primary tumour - other', '114': 'Recurrent tumour - solid tissue', '115': 'Recurrent tumour - blood derived (peripheral blood)', '116': 'Recurrent tumour - blood derived (bone marrow)', '117': 'Recurrent tumour - other', '118': 'Metastatic tumour - NOS', '119': 'Metastatic tumour - lymph node', '120': 'Metastatic tumour - metastasis local to lymph node', '121': 'Metastatic tumour - metastasis to distant location', '122': 'Metastatic tumour - additional metastatic', '123': 'Xenograft - derived from primary tumour', '124': 'Xenograft - derived from tumour cell line', '125': 'Cell line - derived from tumour', '126': 'Primary tumour - lymph node' , '127': 'Metastatic tumour - other', '128': 'Cell line - derived from xenograft tumour'}
 
 project_info = collections.defaultdict(dict)
-summary_file = open("EGA_DCC_Summary_2Oct2018.tsv", "a")
+summary_file = open("EGA_DCC_Summary_3Dec2018.tsv", "a")
 #summary_file = open("EGA_DCC_Summary_MELA-AU.txt", "a")
 #summary_file.write("Project\tCountry\tProject Name\tSequencing Strategy\tTotal Number of analyzed samples\tTotal found in EGA\tTotal Not Found in EGA\tDonors with EGA Data\tDonors without EGA Data\tTotal Donors\tSamples with Files but missing EGAF IDs\tExclude PCAWG samples\tPCAWG samples not found in non-PCAWG EGA datasets, but exist in PCAWG EGA datasets\tTotal PCAWG samples\t\n")
 logfile = open("EGA_DCC_Audit.log", "w")
@@ -182,8 +182,8 @@ def getFileSizes(ega_dataset_id):
          #egaFiles[item['egaStableId']['md5']] = item['md5']
          egaFiles[ega_file_id]['fileSize'] = item['fileSize']
    except pycurl.error as error:
-      errno, errstr = error
-      logfile.write("An error occurred trying to retrieve file sizes from EGA for EGA dataset %s:\n%s\n"%(ega_dataset_id, errstr))
+      ret = error.args[0]
+      logfile.write("An error occurred trying to retrieve file sizes from EGA for EGA dataset %s:\n%s\n"%(ega_dataset_id, ret))
    return egaFiles
   
 
@@ -403,13 +403,13 @@ def process_metadata(ega_samples, dcc_sample, seqstrat, ega_sample_info, exp_inf
       else:
          logfile.write("libstrat %s was not found in dcc_sample %s\n"%(libstrat, dcc_sample))
          outFile.write("%s"%dcc_sample_info)
-         outFile.write("\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t%s\n"%donor_sex)
+         outFile.write("\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t%s\t\t\t\t\t%s\n"%(matched_sample_id, donor_sex))
          sample_notFoundEGA[seqstrat][dcc_sample] = 1
          donor_withoutEGAData[seqstrat][donor_id] = 1
    else:
       logfile.write("Did not find dcc sample %s anywhere in EGA\n"%dcc_sample)
       outFile.write("%s"%dcc_sample_info)
-      outFile.write("\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t%s\n"%donor_sex)
+      outFile.write("\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t%s\t\t\t\t\t%s\n"%(matched_sample_id, donor_sex))
       sample_notFoundEGA[seqstrat][dcc_sample] = 1
       donor_withoutEGAData[seqstrat][donor_id] = 1
    return sample_foundEGA, donor_withEGAData, sample_notFoundEGA, donor_withoutEGAData, fileExists_notEGAF, sample_mismatchedEGAF
@@ -448,7 +448,7 @@ for project in project_info:
  
    analyses = {}
 
-   auditFile = "%s/%s_Audit_ICGC27.tsv"%(output_dir, project)
+   auditFile = "%s/%s_Audit_ICGC28.tsv"%(output_dir, project)
    if os.path.exists(auditFile):
       logfile.write("auditFile %s already exists\n"%auditFile)
       continue
@@ -511,7 +511,7 @@ for project in project_info:
    
 
    # Print audit to output file
-   outFile.write("ICGC DCC Project Code\tICGC Submitted Donor ID\tICGC Submitted Specimen ID\tICGC Submitted Specimen Type\tICGC Submitted Sample ID\tICGC Submitted Sequencing Strategy\tICGC Raw Data Accession\tDCC Submission File\tEGA Study Accession\tEGA Dataset Accession\tEGA Library Strategy\tEGA Experiment Accession\tEGA ERX Accession\tEGA ERS Accession\tEGA Sample Accession\tEGA Run Accession\tEGA Analysis Accession\tEGA Raw Sequence Filename\tEGA File Accession\tMD5 Checksum\tUnencrypted Checksum\tFile Size\tFile Type\tMatched DCC Sample ID\tPaired-End\tInsert Size\tAligned\tReference Genome\tDonor Gender\n") 
+   outFile.write("ICGC DCC Project Code\tICGC Submitted Donor ID\tICGC Submitted Specimen ID\tICGC Submitted Specimen Type\tICGC Submitted Sample ID\tICGC Submitted Sequencing Strategy\tICGC Raw Data Accession\tDCC Submission File\tPCAWG sample\tEGA Study Accession\tEGA Dataset Accession\tEGA Library Strategy\tEGA Experiment Accession\tEGA ERX Accession\tEGA ERS Accession\tEGA Sample Accession\tEGA Run Accession\tEGA Analysis Accession\tEGA Raw Sequence Filename\tEGA File Accession\tMD5 Checksum\tUnencrypted Checksum\tFile Size\tFile Type\tMatched DCC Sample ID\tPaired-End\tInsert Size\tAligned\tReference Genome\tDonor Gender\n") 
 
    project_logFile.write("[%s]\tTotal number of samples in %s = %s\n"%(project, project, len(unique_samples.unique_dcc_samples)))
    # if analyzed sample ID exists in EGA data, print out corresponding EGA data
@@ -554,7 +554,10 @@ for project in project_info:
          submitted_ega_samples = unique_samples[seqstrat][dcc_sample]['ega_accessions']['ega_samples']
          submitted_ega_files = unique_samples[seqstrat][dcc_sample]['ega_accessions']['ega_files']
          dcc_fileName = unique_samples[seqstrat][dcc_sample]['fileName']
-         dcc_sample_info = "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t"%(project, donor_id, specimen_id, specimen_type, dcc_sample, seqstrat, raw_data_accession, dcc_fileName)
+         is_pcawg_sample = ""
+         if (dcc_sample in pcawg_samples):
+            is_pcawg_sample = 'PCAWG'
+         dcc_sample_info = "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t"%(project, donor_id, specimen_id, specimen_type, dcc_sample, seqstrat, raw_data_accession, dcc_fileName, is_pcawg_sample)
          if len(submitted_ega_files) != 0:
             project_logFile.write("DCC Sample = %s has multiple EGAFs %s\n"%(dcc_sample, submitted_ega_files))
             processed_datasets = {}
@@ -576,7 +579,7 @@ for project in project_info:
                if ega_dataset is None or ega_dataset not in ega_datasets:
                   project_logFile.write("ega_dataset is None\n")
                   outFile.write("%s"%dcc_sample_info)
-                  outFile.write("\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t%s\n"%donor_sex)
+                  outFile.write("\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t%s\t\t\t\t\t%s\n"%(matched_sample_id, donor_sex))
                   sample_notFoundEGA[seqstrat][dcc_sample] = 1
                   donor_withoutEGAData[seqstrat][donor_id] = 1
                   continue
@@ -650,6 +653,7 @@ for project in project_info:
          if sample in pcawg_samples:
             total_pcawg_samples[sample] = sample
       test.write("\n\n")
+      print("Total number of PCAWG samples = %s"%(len(total_pcawg_samples)))
  
       test.write("Not found %s samples:\n"%seqstrat)
       for sample in sample_notFoundEGA[seqstrat]:
@@ -658,6 +662,7 @@ for project in project_info:
             if sample in pcawg_samples:
                existsInPCAWGDataset[sample] = sample
       test.write("\n\n")
+      print("Total number of PCAWG samples that only exist in PCAWG EGA datasets = %s"%(len(existsInPCAWGDataset)))
       
       print("Number of PCAWG samples = %s\n"%(len(pcawg_samples)))
       test.write("Found %s samples:\n"%seqstrat)
@@ -676,7 +681,8 @@ for project in project_info:
                exclude_pcawg_samples[sample] = sample
          else:
             test.write("%s\n"%sample)
-      test.write("\n\n") 
+      test.write("\n\n")
+      print("Total number of PCAWG samples which are found in non-PCAWG EGA datasets = %s"%(len(exclude_pcawg_samples)))
 
       
       project_logFile.write("%s"%project)
